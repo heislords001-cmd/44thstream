@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>44thStream</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>🎬 44thStream</h1>
+    <div class="search-form">
+      <input type="text" id="searchInput" placeholder="Search movies..." />
+      <button id="searchBtn">Search</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="movies">🎥 Movies</button>
+    <button class="tab-btn" data-tab="anime">🎌 Anime</button>
+    <button class="tab-btn" data-tab="dramas">🇰🇷 Korean Dramas</button>
+  </nav>
+
+  <div class="content">
+    <div id="movieGrid" class="grid"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
