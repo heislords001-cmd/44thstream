@@ -3,31 +3,13 @@
 // ============================================================
 const TMDB_ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlMmY1N2Q3MDQ1NDI0NDc2NDNjNmYxZGEwOTJmZjkxYyIsIm5iZiI6MTc4MzI3MjMzNC41NzksInN1YiI6IjZhNGE5MzhlZmJhNTZhOWRhZWYyZjg3OSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.cR-Ks9gEwGxu-UPb5pmCPMNNrRKwe8AcI6KAMwfrSi0';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
-
-// Consumet API endpoints
-const CONSUMET_ANIME = 'https://api.consumet.org/anime/animepahe';
-const CONSUMET_DRAMA = 'https://api.consumet.org/movies/dramacool';
-
-// ============================================================
-// STATE
-// ============================================================
-let currentTab = 'movies';
-let currentResults = [];
-let currentDetailData = null;
-let currentEpisodes = [];
-let currentVideoSource = null;
+const KITSU_API = 'https://kitsu.io/api/edge';
+const TVMAZE_API = 'https://api.tvmaze.com';
 
 // ============================================================
 // DOM REFS
 // ============================================================
 const $ = id => document.getElementById(id);
-const mainGrid = $('mainGrid');
-const searchGrid = $('searchGrid');
-const searchHead = $('searchHead');
-const genreChips = $('genreChips');
-const sectionTitle = $('sectionTitle');
-const detailPage = $('detailPage');
-const detailContent = $('detailContent');
 
 // ============================================================
 // HELPERS
@@ -43,13 +25,13 @@ function ratingColor(score) {
 
 function movieCard(item, type) {
   const title = item.title || item.name || 'Unknown';
-  const poster = item.poster || item.image || item.poster_path || item.cover || null;
+  const poster = item.poster || item.image || item.poster_path || null;
   const rating = item.rating || item.vote_average || item.score || 0;
   const year = item.year || item.release_date || item.releaseDate || '';
-  const id = item.id || item.animeId || item.dramaId || item.mal_id;
+  const id = item.id || item.mal_id;
 
   return `
-    <div class="card" data-id="${id}" data-type="${type || currentTab}">
+    <div class="card" data-id="${id}" data-type="${type}">
       ${poster ? `<img src="${poster}" alt="${title}" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--cream-dim);font-size:12px;padding:10px;text-align:center;">${title}</div>`}
       ${year ? `<div class="card-badge">${String(year).slice(0, 4)}</div>` : ''}
       <div class="card-overlay">
@@ -64,7 +46,7 @@ function attachCardHandlers(container) {
   container.querySelectorAll('.card[data-id]').forEach(card => {
     card.addEventListener('click', () => {
       const id = card.dataset.id;
-      const type = card.dataset.type || currentTab;
+      const type = card.dataset.type;
       openDetail(id, type);
     });
   });
@@ -74,43 +56,38 @@ function attachCardHandlers(container) {
 // API CALLS
 // ============================================================
 async function fetchTMDB(path) {
-  const url = `${TMDB_BASE}${path}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${TMDB_BASE}${path}`, {
     headers: { 'Authorization': `Bearer ${TMDB_ACCESS_TOKEN}` }
   });
-  if (!res.ok) throw new Error(`TMDB HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`TMDB ${res.status}`);
   return res.json();
 }
 
-async function fetchConsumet(base, path) {
-  const url = `${base}${path}`;
-  console.log('Fetching:', url);
-  const res = await fetch(url);
-  if (!res.ok) {
-    // If 404 or 500, try alternative endpoint
-    if (res.status === 404 || res.status === 500) {
-      // Try without the path
-      const altUrl = `${base}`;
-      const altRes = await fetch(altUrl);
-      if (altRes.ok) return altRes.json();
-    }
-    throw new Error(`Consumet HTTP ${res.status}`);
-  }
+async function fetchKitsu(path) {
+  const res = await fetch(`${KITSU_API}${path}`);
+  if (!res.ok) throw new Error(`Kitsu ${res.status}`);
+  return res.json();
+}
+
+async function fetchTVMaze(path) {
+  const res = await fetch(`${TVMAZE_API}${path}`);
+  if (!res.ok) throw new Error(`TVMaze ${res.status}`);
   return res.json();
 }
 
 // ============================================================
-// MOVIES — TMDB (Multiple Pages)
+// LOAD MOVIES
 // ============================================================
 async function loadMovies() {
-  mainGrid.innerHTML = skeletonCards(12);
+  const grid = $('mainGrid');
+  grid.innerHTML = skeletonCards(12);
   try {
-    let allMovies = [];
+    let all = [];
     for (let i = 1; i <= 3; i++) {
       const data = await fetchTMDB(`/discover/movie?sort_by=popularity.desc&page=${i}`);
-      allMovies = allMovies.concat(data.results);
+      all = all.concat(data.results);
     }
-    const results = allMovies.map(item => ({
+    const results = all.map(item => ({
       id: item.id,
       title: item.title,
       poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
@@ -119,83 +96,74 @@ async function loadMovies() {
       overview: item.overview || '',
       backdrop: item.backdrop_path ? `https://image.tmdb.org/t/p/original${item.backdrop_path}` : null
     }));
-    currentResults = results;
-    mainGrid.innerHTML = results.map(item => movieCard(item, 'movies')).join('');
-    attachCardHandlers(mainGrid);
+    grid.innerHTML = results.map(item => movieCard(item, 'movies')).join('');
+    attachCardHandlers(grid);
     if (results.length) setHero(results[0], 'movies');
-    sectionTitle.textContent = 'Trending Movies';
+    $('sectionTitle').textContent = 'Trending Movies';
   } catch (e) {
-    console.error('Movies error:', e);
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load movies</div><p>${e.message}</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="display">Failed to load movies</div><p>${e.message}</p></div>`;
   }
 }
 
 // ============================================================
-// ANIME — Consumet (Animepahe)
+// LOAD ANIME
 // ============================================================
 async function loadAnime() {
-  mainGrid.innerHTML = skeletonCards(12);
+  const grid = $('mainGrid');
+  grid.innerHTML = skeletonCards(12);
   try {
-    // Try top-airing first
-    let data;
-    try {
-      data = await fetchConsumet(CONSUMET_ANIME, '/top-airing');
-    } catch (e) {
-      // Fallback: try recent-episodes
-      data = await fetchConsumet(CONSUMET_ANIME, '/recent-episodes');
-    }
-    const results = (data.results || data || []).map(item => ({
-      id: item.id || item.animeId || item.episodeId,
-      title: item.title || item.name || 'Unknown',
-      poster: item.image || item.poster || item.cover || null,
-      rating: item.rating || item.score || 0,
-      year: item.releaseDate || item.year || '',
-      overview: item.synopsis || item.overview || '',
-      backdrop: item.cover || item.image || null,
-      genres: item.genres || []
-    }));
-    currentResults = results;
-    mainGrid.innerHTML = results.map(item => movieCard(item, 'anime')).join('');
-    attachCardHandlers(mainGrid);
+    const data = await fetchKitsu('/anime?sort=-averageRating&page[limit]=50');
+    const results = data.data.map(item => {
+      const a = item.attributes;
+      return {
+        id: item.id,
+        title: a.canonicalTitle || a.titles?.en || a.titles?.en_jp || 'Unknown',
+        poster: a.posterImage?.medium || null,
+        rating: a.averageRating ? parseFloat(a.averageRating) / 10 : 0,
+        year: a.startDate?.slice(0,4) || '',
+        overview: a.synopsis || '',
+        backdrop: a.coverImage?.large || null
+      };
+    });
+    grid.innerHTML = results.map(item => movieCard(item, 'anime')).join('');
+    attachCardHandlers(grid);
     if (results.length) setHero(results[0], 'anime');
-    sectionTitle.textContent = 'Trending Anime';
+    $('sectionTitle').textContent = 'Trending Anime';
   } catch (e) {
-    console.error('Anime error:', e);
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load anime</div><p>${e.message}</p><p style="font-size:12px;margin-top:10px;">Consumet API may be rate-limited. Try again later.</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="display">Failed to load anime</div><p>${e.message}</p></div>`;
   }
 }
 
 // ============================================================
-// KOREAN DRAMAS — Consumet (Dramacool)
+// LOAD DRAMAS
 // ============================================================
 async function loadDramas() {
-  mainGrid.innerHTML = skeletonCards(12);
+  const grid = $('mainGrid');
+  grid.innerHTML = skeletonCards(12);
   try {
-    const data = await fetchConsumet(CONSUMET_DRAMA, '/recently-updated');
-    const results = (data.results || data || []).map(item => ({
-      id: item.id || item.dramaId,
-      title: item.title || item.name || 'Unknown',
-      poster: item.image || item.poster || item.cover || null,
-      rating: item.rating || 0,
-      year: item.releaseDate || item.year || '',
-      overview: item.synopsis || item.overview || '',
-      backdrop: item.cover || item.image || null,
-      genres: item.genres || []
+    const data = await fetchTVMaze('/search/shows?q=korean+drama');
+    const results = data.map(item => ({
+      id: item.show.id,
+      title: item.show.name,
+      poster: item.show.image?.medium || null,
+      rating: item.show.rating?.average || 0,
+      year: item.show.premiered?.slice(0,4) || '',
+      overview: item.show.summary?.replace(/<[^>]+>/g, '') || '',
+      backdrop: item.show.image?.original || null
     }));
-    currentResults = results;
-    mainGrid.innerHTML = results.map(item => movieCard(item, 'dramas')).join('');
-    attachCardHandlers(mainGrid);
+    grid.innerHTML = results.map(item => movieCard(item, 'dramas')).join('');
+    attachCardHandlers(grid);
     if (results.length) setHero(results[0], 'dramas');
-    sectionTitle.textContent = 'Korean Dramas';
+    $('sectionTitle').textContent = 'Korean Dramas';
   } catch (e) {
-    console.error('Drama error:', e);
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load dramas</div><p>${e.message}</p><p style="font-size:12px;margin-top:10px;">Consumet API may be rate-limited. Try again later.</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="display">Failed to load dramas</div><p>${e.message}</p></div>`;
   }
 }
 
 // ============================================================
 // LOAD TAB
 // ============================================================
+let currentTab = 'movies';
 function loadTabContent() {
   if (currentTab === 'movies') loadMovies();
   else if (currentTab === 'anime') loadAnime();
@@ -206,16 +174,13 @@ function loadTabContent() {
 // HERO
 // ============================================================
 function setHero(item, type) {
-  const heroBg = $('heroBg');
-  const imgUrl = item.backdrop || item.poster;
-  if (imgUrl) {
-    heroBg.style.backgroundImage = `url(${imgUrl})`;
-    heroBg.classList.add('show');
-  }
+  const bg = $('heroBg');
+  const img = item.backdrop || item.poster;
+  if (img) { bg.style.backgroundImage = `url(${img})`; bg.classList.add('show'); }
   $('heroTitle').textContent = item.title || '44thStream';
   $('heroDesc').textContent = item.overview || 'No synopsis available.';
-  const eyebrows = { movies: 'Now Showing', anime: 'Trending Anime', dramas: 'Korean Drama' };
-  $('heroEyebrow').textContent = eyebrows[type] || 'Now Showing';
+  const labels = { movies: 'Now Showing', anime: 'Trending Anime', dramas: 'Korean Drama' };
+  $('heroEyebrow').textContent = labels[type] || 'Now Showing';
   $('heroMeta').innerHTML = `
     <div class="pill">★ ${Number(item.rating || 0).toFixed(1)}</div>
     <div class="pill">${String(item.year || '').slice(0, 4) || '—'}</div>
@@ -226,10 +191,13 @@ function setHero(item, type) {
 // ============================================================
 // DETAIL PAGE
 // ============================================================
+let currentDetailData = null;
+let currentEpisodes = [];
+
 async function openDetail(id, type) {
-  detailPage.style.display = 'block';
+  $('detailPage').style.display = 'block';
   document.querySelector('main').style.display = 'none';
-  detailContent.innerHTML = '<div class="modal-loading">Loading...</div>';
+  $('detailContent').innerHTML = '<div class="modal-loading">Loading...</div>';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   try {
@@ -237,8 +205,7 @@ async function openDetail(id, type) {
     if (type === 'movies') {
       const info = await fetchTMDB(`/movie/${id}?append_to_response=videos`);
       data = {
-        id: info.id,
-        title: info.title,
+        id: info.id, title: info.title,
         poster: info.poster_path ? `https://image.tmdb.org/t/p/w500${info.poster_path}` : null,
         rating: info.vote_average || 0,
         year: info.release_date || '',
@@ -248,31 +215,30 @@ async function openDetail(id, type) {
         tagline: info.tagline || '',
         trailer: (info.videos?.results || []).find(v => v.type === 'Trailer')?.key || null
       };
-      episodes = [];
     } else if (type === 'anime') {
-      const info = await fetchConsumet(CONSUMET_ANIME, `/info/${id}`);
+      const info = await fetchKitsu(`/anime/${id}`);
+      const a = info.data.attributes;
       data = {
-        id: info.id || id,
-        title: info.title || info.name || 'Unknown',
-        poster: info.image || info.poster || info.cover || null,
-        rating: info.rating || info.score || 0,
-        year: info.releaseDate || info.year || '',
-        overview: info.synopsis || info.overview || '',
-        genres: info.genres || [],
-        episodes: info.episodes || 0
+        id: info.data.id,
+        title: a.canonicalTitle || a.titles?.en || a.titles?.en_jp || 'Unknown',
+        poster: a.posterImage?.medium || null,
+        rating: a.averageRating ? parseFloat(a.averageRating) / 10 : 0,
+        year: a.startDate?.slice(0,4) || '',
+        overview: a.synopsis || '',
+        genres: a.genres || [],
+        episodes: a.episodeCount || 0
       };
-      episodes = info.episodes || [];
     } else if (type === 'dramas') {
-      const info = await fetchConsumet(CONSUMET_DRAMA, `/info?id=${id}`);
+      const info = await fetchTVMaze(`/shows/${id}`);
       data = {
-        id: info.id || id,
-        title: info.title || info.name || 'Unknown',
-        poster: info.image || info.poster || info.cover || null,
-        rating: info.rating || 0,
-        year: info.releaseDate || info.year || '',
-        overview: info.synopsis || info.overview || '',
+        id: info.id,
+        title: info.name,
+        poster: info.image?.medium || null,
+        rating: info.rating?.average || 0,
+        year: info.premiered?.slice(0,4) || '',
+        overview: info.summary?.replace(/<[^>]+>/g, '') || '',
         genres: info.genres || [],
-        episodes: info.episodes || []
+        episodes: info._embedded?.episodes || []
       };
       episodes = data.episodes || [];
     }
@@ -280,8 +246,7 @@ async function openDetail(id, type) {
     currentEpisodes = episodes;
     renderDetail(data, episodes, type);
   } catch (e) {
-    console.error('Detail error:', e);
-    detailContent.innerHTML = `<div class="empty-state"><div class="display">Failed to load details</div><p>${e.message}</p></div>`;
+    $('detailContent').innerHTML = `<div class="empty-state"><div class="display">Failed to load details</div><p>${e.message}</p></div>`;
   }
 }
 
@@ -309,7 +274,6 @@ function renderDetail(data, episodes, type) {
         <div class="overview">${data.overview || 'No synopsis available.'}</div>
         <div class="detail-actions">
           ${type === 'movies' && data.trailer ? `<button class="btn-primary" onclick="openTrailer('${data.trailer}')">▶ Watch Trailer</button>` : ''}
-          ${episodes && episodes.length > 0 ? `<button class="btn-primary" onclick="playEpisode(0)">▶ Watch Episode 1</button>` : ''}
         </div>
       </div>
     </div>
@@ -320,7 +284,7 @@ function renderDetail(data, episodes, type) {
       <h3 style="margin-top: 30px;">Episodes (${episodes.length})</h3>
       <div class="episodes-grid">
         ${episodes.slice(0, 20).map((ep, i) => `
-          <button class="episode-btn" data-index="${i}" onclick="playEpisode(${i})">
+          <button class="episode-btn" onclick="showComingSoon()">
             ${ep.number || ep.episode_number || i + 1}
           </button>
         `).join('')}
@@ -329,114 +293,32 @@ function renderDetail(data, episodes, type) {
   }
 
   html += `<div id="videoPlayerContainer" style="margin-top: 20px;"></div>`;
-  detailContent.innerHTML = html;
+  $('detailContent').innerHTML = html;
 }
 
 // ============================================================
-// PLAY FUNCTIONS — Consumet Streaming
+// COMING SOON
 // ============================================================
-async function playEpisode(index) {
+function showComingSoon() {
   const container = $('videoPlayerContainer');
   if (!container) return;
-  const ep = currentEpisodes[index];
-  if (!ep) {
-    container.innerHTML = '<div class="empty-state">Episode not found.</div>';
-    return;
-  }
-
-  container.innerHTML = '<div class="modal-loading">Loading episode...</div>';
-
-  try {
-    let watchData;
-    if (currentTab === 'anime') {
-      const epId = ep.id || ep.episodeId || ep.episode_id;
-      if (!epId) throw new Error('Episode ID not found');
-      watchData = await fetchConsumet(CONSUMET_ANIME, `/watch/${epId}`);
-    } else if (currentTab === 'dramas') {
-      const epId = ep.episodeId || ep.id;
-      const mediaId = currentDetailData.id;
-      if (!epId || !mediaId) throw new Error('Episode or Media ID not found');
-      watchData = await fetchConsumet(CONSUMET_DRAMA, `/watch?episodeId=${epId}&mediaId=${mediaId}&server=asianload`);
-    }
-
-    const sources = watchData.sources || [];
-    const source = sources.find(s => s.quality === '1080p') || sources[0];
-    if (source && source.url) {
-      renderVideoPlayer(source.url, ep.title || `Episode ${ep.number || index + 1}`);
-    } else {
-      container.innerHTML = '<div class="empty-state">No video source available.</div>';
-    }
-  } catch (e) {
-    console.error('Episode load error:', e);
-    container.innerHTML = `<div class="empty-state">Failed to load episode: ${e.message}</div>`;
-  }
-}
-
-function renderVideoPlayer(url, title) {
-  const container = $('videoPlayerContainer');
-  const isHls = url.includes('.m3u8');
-  const isMp4 = url.includes('.mp4');
-  const playerId = 'videoPlayer_' + Date.now();
-
-  let html = `
-    <div class="video-player">
-      <video id="${playerId}" controls style="width:100%;max-height:500px;" playsinline></video>
-    </div>
-    <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">
-      ${isMp4 ? `<button class="btn-primary" onclick="downloadVideo('${url}', '${title}')">⬇️ Download</button>` : ''}
-      ${!isMp4 ? `<span style="color:var(--cream-dim);font-size:13px;">Streaming (HLS) — Download not available</span>` : ''}
+  container.innerHTML = `
+    <div class="empty-state">
+      <div class="display">🎬 Coming Soon</div>
+      <p>Video streaming is being implemented.</p>
     </div>
   `;
-  container.innerHTML = html;
-
-  const video = document.getElementById(playerId);
-  if (isHls) {
-    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(url);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url;
-    } else {
-      container.innerHTML = '<div class="empty-state">Your browser does not support HLS streaming.</div>';
-    }
-  } else {
-    video.src = url;
-    video.play();
-  }
-}
-
-function downloadVideo(url, title) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${title || 'video'}.mp4`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
 }
 
 function openTrailer(key) {
-  openModal(`https://www.youtube.com/embed/${key}`, 'Trailer');
-}
-
-// ============================================================
-// MODAL
-// ============================================================
-function openModal(url, title) {
   $('modalBg').classList.add('open');
   $('modalContent').innerHTML = `
     <div style="padding:20px;">
-      <h3 style="margin-bottom:10px;color:var(--cream);">${title || 'Video'}</h3>
-      <iframe src="${url}" style="width:100%;height:400px;border:none;border-radius:8px;" allowfullscreen></iframe>
+      <h3 style="margin-bottom:10px;color:var(--cream);">Trailer</h3>
+      <iframe src="https://www.youtube.com/embed/${key}" style="width:100%;height:400px;border:none;border-radius:8px;" allowfullscreen></iframe>
     </div>
   `;
 }
-
-$('modalClose').addEventListener('click', () => $('modalBg').classList.remove('open'));
-$('modalBg').addEventListener('click', (e) => {
-  if (e.target.id === 'modalBg') $('modalBg').classList.remove('open');
-});
 
 // ============================================================
 // SEARCH
@@ -446,17 +328,17 @@ $('searchInput').addEventListener('input', (e) => {
   clearTimeout(searchTimer);
   const q = e.target.value.trim();
   if (!q) {
-    searchHead.style.display = 'none';
-    searchGrid.innerHTML = '';
-    detailPage.style.display = 'none';
+    $('searchHead').style.display = 'none';
+    $('searchGrid').innerHTML = '';
+    $('detailPage').style.display = 'none';
     document.querySelector('main').style.display = 'block';
     loadTabContent();
     return;
   }
-  searchHead.style.display = 'flex';
-  searchGrid.innerHTML = skeletonCards(6);
+  $('searchHead').style.display = 'flex';
+  $('searchGrid').innerHTML = skeletonCards(6);
   document.querySelector('main').style.display = 'block';
-  detailPage.style.display = 'none';
+  $('detailPage').style.display = 'none';
 
   searchTimer = setTimeout(async () => {
     try {
@@ -464,40 +346,42 @@ $('searchInput').addEventListener('input', (e) => {
       if (currentTab === 'movies') {
         const data = await fetchTMDB(`/search/movie?query=${encodeURIComponent(q)}`);
         results = data.results.map(item => ({
-          id: item.id,
-          title: item.title,
+          id: item.id, title: item.title,
           poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
           rating: item.vote_average || 0,
           year: item.release_date || '',
           overview: item.overview || ''
         }));
       } else if (currentTab === 'anime') {
-        const data = await fetchConsumet(CONSUMET_ANIME, `?query=${encodeURIComponent(q)}`);
-        results = (data.results || data || []).map(item => ({
-          id: item.id || item.animeId,
-          title: item.title || item.name || 'Unknown',
-          poster: item.image || item.poster || item.cover || null,
-          rating: item.rating || item.score || 0,
-          year: item.releaseDate || item.year || '',
-          overview: item.synopsis || item.overview || ''
-        }));
+        const data = await fetchKitsu(`/anime?filter[text]=${encodeURIComponent(q)}&page[limit]=20`);
+        results = data.data.map(item => {
+          const a = item.attributes;
+          return {
+            id: item.id,
+            title: a.canonicalTitle || a.titles?.en || a.titles?.en_jp || 'Unknown',
+            poster: a.posterImage?.medium || null,
+            rating: a.averageRating ? parseFloat(a.averageRating) / 10 : 0,
+            year: a.startDate?.slice(0,4) || '',
+            overview: a.synopsis || ''
+          };
+        });
       } else if (currentTab === 'dramas') {
-        const data = await fetchConsumet(CONSUMET_DRAMA, `/${encodeURIComponent(q)}`);
-        results = (data.results || data || []).map(item => ({
-          id: item.id || item.dramaId,
-          title: item.title || item.name || 'Unknown',
-          poster: item.image || item.poster || item.cover || null,
-          rating: item.rating || 0,
-          year: item.releaseDate || item.year || '',
-          overview: item.synopsis || item.overview || ''
+        const data = await fetchTVMaze(`/search/shows?q=${encodeURIComponent(q)}`);
+        results = data.map(item => ({
+          id: item.show.id,
+          title: item.show.name,
+          poster: item.show.image?.medium || null,
+          rating: item.show.rating?.average || 0,
+          year: item.show.premiered?.slice(0,4) || '',
+          overview: item.show.summary?.replace(/<[^>]+>/g, '') || ''
         }));
       }
-      searchGrid.innerHTML = results.length
+      $('searchGrid').innerHTML = results.length
         ? results.map(item => movieCard(item, currentTab)).join('')
-        : `<div class="empty-state"><div class="display">No results</div>Try another title.</div>`;
-      attachCardHandlers(searchGrid);
+        : `<div class="empty-state"><div class="display">No results</div></div>`;
+      attachCardHandlers($('searchGrid'));
     } catch (e) {
-      searchGrid.innerHTML = `<div class="empty-state">Search failed: ${e.message}</div>`;
+      $('searchGrid').innerHTML = `<div class="empty-state">Search failed: ${e.message}</div>`;
     }
   }, 400);
 });
@@ -510,11 +394,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentTab = btn.dataset.tab;
-    detailPage.style.display = 'none';
+    $('detailPage').style.display = 'none';
     document.querySelector('main').style.display = 'block';
     $('searchInput').value = '';
-    searchHead.style.display = 'none';
-    searchGrid.innerHTML = '';
+    $('searchHead').style.display = 'none';
+    $('searchGrid').innerHTML = '';
     loadTabContent();
   });
 });
@@ -523,21 +407,29 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // BACK BUTTON
 // ============================================================
 $('backBtn').addEventListener('click', () => {
-  detailPage.style.display = 'none';
+  $('detailPage').style.display = 'none';
   document.querySelector('main').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   loadTabContent();
 });
 
 // ============================================================
-// SIGN IN BUTTON
+// MODAL CLOSE
+// ============================================================
+$('modalClose').addEventListener('click', () => $('modalBg').classList.remove('open'));
+$('modalBg').addEventListener('click', (e) => {
+  if (e.target.id === 'modalBg') $('modalBg').classList.remove('open');
+});
+
+// ============================================================
+// SIGN IN
 // ============================================================
 $('authBtn').addEventListener('click', () => {
   alert('Sign in / Sign up coming soon!');
 });
 
 // ============================================================
-// GENRE CHIPS (Movies only)
+// GENRE CHIPS
 // ============================================================
 async function loadGenres() {
   const genres = [
@@ -546,31 +438,32 @@ async function loadGenres() {
     { id: 27, name: 'Horror' }, { id: 10749, name: 'Romance' },
     { id: 16, name: 'Animation' }
   ];
-  genreChips.innerHTML = `<div class="chip active" data-id="">All</div>` +
+  const chips = $('genreChips');
+  chips.innerHTML = `<div class="chip active" data-id="">All</div>` +
     genres.map(g => `<div class="chip" data-id="${g.id}">${g.name}</div>`).join('');
 
-  genreChips.querySelectorAll('.chip').forEach(chip => {
+  chips.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', async () => {
       if (currentTab !== 'movies') return;
-      genreChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       const genreId = chip.dataset.id || null;
-      mainGrid.innerHTML = skeletonCards(12);
+      const grid = $('mainGrid');
+      grid.innerHTML = skeletonCards(12);
       try {
         const data = await fetchTMDB(`/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`);
         const results = data.results.map(item => ({
-          id: item.id,
-          title: item.title,
+          id: item.id, title: item.title,
           poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
           rating: item.vote_average || 0,
           year: item.release_date || '',
           overview: item.overview || ''
         }));
-        mainGrid.innerHTML = results.map(item => movieCard(item, 'movies')).join('');
-        attachCardHandlers(mainGrid);
+        grid.innerHTML = results.map(item => movieCard(item, 'movies')).join('');
+        attachCardHandlers(grid);
         if (results.length) setHero(results[0], 'movies');
       } catch (e) {
-        mainGrid.innerHTML = `<div class="empty-state">Failed to load</div>`;
+        grid.innerHTML = `<div class="empty-state">Failed to load</div>`;
       }
     });
   });
@@ -579,6 +472,6 @@ async function loadGenres() {
 // ============================================================
 // BOOT
 // ============================================================
-mainGrid.innerHTML = skeletonCards(12);
+$('mainGrid').innerHTML = skeletonCards(12);
 loadMovies();
 loadGenres();
