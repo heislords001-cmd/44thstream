@@ -28,7 +28,6 @@
     }
     .display { font-family: 'Anton', sans-serif; letter-spacing: 0.02em; text-transform: uppercase; }
 
-    /* HEADER */
     header {
       display: flex;
       align-items: center;
@@ -80,7 +79,6 @@
       letter-spacing: 0.05em;
     }
 
-    /* TABS */
     .tabs {
       display: flex;
       gap: 6px;
@@ -90,13 +88,13 @@
       flex-wrap: wrap;
     }
     .tabs button {
-      padding: 8px 20px;
+      padding: 8px 14px;
       background: transparent;
       color: var(--cream-dim);
       border: 1px solid transparent;
       border-radius: 999px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
       transition: all 0.2s;
     }
@@ -107,7 +105,6 @@
       border-color: rgba(244,185,66,0.3);
     }
 
-    /* HERO */
     .hero {
       position: relative;
       height: 70vh;
@@ -183,7 +180,6 @@
     }
     .btn-primary:hover { transform: translateY(-2px); }
 
-    /* MAIN CONTENT */
     main { padding: 32px 5vw 80px; }
     .section-head {
       display: flex;
@@ -195,8 +191,20 @@
     }
     .section-title { font-size: 24px; }
     .section-title .num { color: var(--crimson); margin-right: 8px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--card);
+      color: var(--cream-dim);
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover { border-color: var(--gold); color: var(--gold); }
+    .chip.active { background: var(--grad); color: var(--void); border-color: transparent; font-weight: 700; }
 
-    /* GRID */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -248,7 +256,6 @@
     .empty-state { text-align: center; padding: 60px 20px; color: var(--cream-dim); }
     .empty-state .display { font-size: 22px; color: var(--cream); margin-bottom: 6px; }
 
-    /* DETAIL PAGE */
     #detailPage {
       display: none;
       padding: 20px 5vw 60px;
@@ -311,7 +318,6 @@
     }
     .video-player video { width: 100%; max-height: 500px; display: block; }
 
-    /* MODAL */
     .modal-bg {
       position: fixed; inset: 0;
       background: rgba(8,3,7,0.85);
@@ -377,7 +383,7 @@
     @media (max-width: 640px) {
       header { padding: 14px 5vw; }
       .search-wrap { order: 3; max-width: 100%; flex-basis: 100%; }
-      .tabs button { font-size: 12px; padding: 6px 14px; }
+      .tabs button { font-size: 10px; padding: 5px 8px; }
       .detail-poster { flex: 0 0 100%; max-width: 220px; margin: 0 auto; }
       .hero { height: 50vh; min-height: 320px; }
       .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
@@ -389,7 +395,7 @@
   <header>
     <div class="logo display">44th<em>Stream</em></div>
     <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Search movies, anime, dramas..." autocomplete="off" />
+      <input type="text" id="searchInput" placeholder="Search anime..." autocomplete="off" />
     </div>
     <div class="header-actions">
       <span class="status-badge" id="statusBadge">● Live</span>
@@ -398,10 +404,16 @@
   </header>
 
   <nav class="tabs">
-    <button class="tab-btn active" data-tab="schedule">📅 Schedule</button>
-    <button class="tab-btn" data-tab="anime">🎌 Anime</button>
+    <button class="tab-btn active" data-tab="trending">🔥 Trending</button>
+    <button class="tab-btn" data-tab="airing">📺 Airing</button>
+    <button class="tab-btn" data-tab="seasonal">🌸 Seasonal</button>
+    <button class="tab-btn" data-tab="top">🏆 Top</button>
+    <button class="tab-btn" data-tab="animelovers">📚 Animelovers</button>
+    <button class="tab-btn" data-tab="mobinime">📖 Mobinime</button>
+    <button class="tab-btn" data-tab="mobinime_movies">🎬 Mobinime Movies</button>
+    <button class="tab-btn" data-tab="otakudesu">📺 Otakudesu</button>
     <button class="tab-btn" data-tab="movies">🎬 Movies</button>
-    <button class="tab-btn" data-tab="dramas">🇰🇷 Korean Dramas</button>
+    <button class="tab-btn" data-tab="dramas">🇰🇷 Dramas</button>
   </nav>
 
   <section class="hero" id="hero">
@@ -418,7 +430,7 @@
 
   <main>
     <div class="section-head">
-      <h2 class="section-title display"><span class="num">01</span><span id="sectionTitle">Trending</span></h2>
+      <h2 class="section-title display"><span class="num">01</span><span id="sectionTitle">Trending Anime</span></h2>
       <div class="chips" id="genreChips"></div>
     </div>
     <div class="grid" id="mainGrid"></div>
@@ -434,13 +446,11 @@
     <div>Powered by DavidCyril API · Built with ❤️</div>
   </footer>
 
-  <!-- DETAIL PAGE -->
   <div id="detailPage">
     <button class="back-btn" id="backBtn">← Back</button>
     <div id="detailContent"></div>
   </div>
 
-  <!-- MODAL -->
   <div class="modal-bg" id="modalBg">
     <div class="modal" id="modal">
       <button class="modal-close" id="modalClose">✕</button>
