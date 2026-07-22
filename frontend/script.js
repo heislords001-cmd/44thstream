@@ -6,11 +6,10 @@ const API_BASE = 'https://apis.davidcyril.name.ng';
 // ============================================================
 // STATE
 // ============================================================
-let currentTab = 'schedule';
+let currentTab = 'trending';
 let currentResults = [];
 let currentDetailData = null;
 let currentEpisodes = [];
-let currentVideoSource = null;
 
 // ============================================================
 // DOM REFS
@@ -78,10 +77,10 @@ async function fetchAPI(endpoint) {
 // ============================================================
 // LOAD FUNCTIONS
 // ============================================================
-async function loadSchedule() {
+async function loadTrending() {
   mainGrid.innerHTML = skeletonCards(12);
   try {
-    const data = await fetchAPI('/anime/schedule');
+    const data = await fetchAPI('/anime/trending');
     const results = (data.results || data || []).map(item => ({
       id: item.id || item.mal_id || item.animeId,
       title: item.title || item.name || 'Unknown',
@@ -91,19 +90,19 @@ async function loadSchedule() {
       synopsis: item.synopsis || item.overview || ''
     }));
     currentResults = results;
-    mainGrid.innerHTML = results.map(item => movieCard(item, 'schedule')).join('');
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'trending')).join('');
     attachCardHandlers(mainGrid);
-    if (results.length) setHero(results[0], 'schedule');
-    sectionTitle.textContent = 'Airing Schedule';
+    if (results.length) setHero(results[0], 'trending');
+    sectionTitle.textContent = 'Trending Anime';
   } catch (e) {
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load</div><p>${e.message}</p></div>`;
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load trending</div><p>${e.message}</p></div>`;
   }
 }
 
-async function loadAnimeList() {
+async function loadAiring() {
   mainGrid.innerHTML = skeletonCards(12);
   try {
-    const data = await fetchAPI('/anime/list');
+    const data = await fetchAPI('/anime/airing');
     const results = (data.results || data || []).map(item => ({
       id: item.id || item.mal_id || item.animeId,
       title: item.title || item.name || 'Unknown',
@@ -113,41 +112,161 @@ async function loadAnimeList() {
       synopsis: item.synopsis || item.overview || ''
     }));
     currentResults = results;
-    mainGrid.innerHTML = results.map(item => movieCard(item, 'anime')).join('');
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'airing')).join('');
     attachCardHandlers(mainGrid);
-    if (results.length) setHero(results[0], 'anime');
-    sectionTitle.textContent = 'Anime List';
+    if (results.length) setHero(results[0], 'airing');
+    sectionTitle.textContent = 'Currently Airing';
   } catch (e) {
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load</div><p>${e.message}</p></div>`;
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load airing</div><p>${e.message}</p></div>`;
   }
 }
 
+async function loadSeasonal() {
+  mainGrid.innerHTML = skeletonCards(12);
+  try {
+    const data = await fetchAPI('/anime/season');
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.mal_id || item.animeId,
+      title: item.title || item.name || 'Unknown',
+      image: item.image || item.poster || item.images?.jpg?.image_url,
+      rating: item.rating || item.score || 0,
+      year: item.year || '',
+      synopsis: item.synopsis || item.overview || ''
+    }));
+    currentResults = results;
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'seasonal')).join('');
+    attachCardHandlers(mainGrid);
+    if (results.length) setHero(results[0], 'seasonal');
+    sectionTitle.textContent = 'Seasonal Anime';
+  } catch (e) {
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load seasonal</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadTop() {
+  mainGrid.innerHTML = skeletonCards(12);
+  try {
+    const data = await fetchAPI('/anime/top');
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.mal_id || item.animeId,
+      title: item.title || item.name || 'Unknown',
+      image: item.image || item.poster || item.images?.jpg?.image_url,
+      rating: item.rating || item.score || 0,
+      year: item.year || '',
+      synopsis: item.synopsis || item.overview || ''
+    }));
+    currentResults = results;
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'top')).join('');
+    attachCardHandlers(mainGrid);
+    if (results.length) setHero(results[0], 'top');
+    sectionTitle.textContent = 'Top Ranked Anime';
+  } catch (e) {
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load top</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadAnimelovers() {
+  mainGrid.innerHTML = skeletonCards(12);
+  try {
+    const data = await fetchAPI('/anime/animelovers/list');
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.mal_id || item.animeId,
+      title: item.title || item.name || 'Unknown',
+      image: item.image || item.poster || item.images?.jpg?.image_url,
+      rating: item.rating || item.score || 0,
+      year: item.year || '',
+      synopsis: item.synopsis || item.overview || ''
+    }));
+    currentResults = results;
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'animelovers')).join('');
+    attachCardHandlers(mainGrid);
+    if (results.length) setHero(results[0], 'animelovers');
+    sectionTitle.textContent = 'Animelovers List';
+  } catch (e) {
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load animelovers</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadMobinime() {
+  mainGrid.innerHTML = skeletonCards(12);
+  try {
+    const data = await fetchAPI('/anime/mobinime/list');
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.mal_id || item.animeId,
+      title: item.title || item.name || 'Unknown',
+      image: item.image || item.poster || item.images?.jpg?.image_url,
+      rating: item.rating || item.score || 0,
+      year: item.year || '',
+      synopsis: item.synopsis || item.overview || ''
+    }));
+    currentResults = results;
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'mobinime')).join('');
+    attachCardHandlers(mainGrid);
+    if (results.length) setHero(results[0], 'mobinime');
+    sectionTitle.textContent = 'Mobinime List';
+  } catch (e) {
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load mobinime</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadMobinimeMovies() {
+  mainGrid.innerHTML = skeletonCards(12);
+  try {
+    const data = await fetchAPI('/anime/mobinime/movies');
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.mal_id || item.animeId,
+      title: item.title || item.name || 'Unknown',
+      image: item.image || item.poster || item.images?.jpg?.image_url,
+      rating: item.rating || item.score || 0,
+      year: item.year || '',
+      synopsis: item.synopsis || item.overview || ''
+    }));
+    currentResults = results;
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'mobinime_movies')).join('');
+    attachCardHandlers(mainGrid);
+    if (results.length) setHero(results[0], 'mobinime_movies');
+    sectionTitle.textContent = 'Mobinime Movies';
+  } catch (e) {
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load mobinime movies</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadOtakudesu() {
+  mainGrid.innerHTML = skeletonCards(12);
+  try {
+    const data = await fetchAPI('/anime/otakudesu/ongoing');
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.mal_id || item.animeId,
+      title: item.title || item.name || 'Unknown',
+      image: item.image || item.poster || item.images?.jpg?.image_url,
+      rating: item.rating || item.score || 0,
+      year: item.year || '',
+      synopsis: item.synopsis || item.overview || ''
+    }));
+    currentResults = results;
+    mainGrid.innerHTML = results.map(item => movieCard(item, 'otakudesu')).join('');
+    attachCardHandlers(mainGrid);
+    if (results.length) setHero(results[0], 'otakudesu');
+    sectionTitle.textContent = 'Otakudesu Ongoing';
+  } catch (e) {
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load otakudesu</div><p>${e.message}</p></div>`;
+  }
+}
+
+// ============================================================
+// MOVIES & DRAMAS (using available endpoints)
+// ============================================================
 async function loadMovies() {
-  mainGrid.innerHTML = skeletonCards(12);
-  try {
-    const data = await fetchAPI('/anime/list');
-    const results = (data.results || data || []).map(item => ({
-      id: item.id || item.mal_id || item.animeId,
-      title: item.title || item.name || 'Unknown',
-      image: item.image || item.poster || item.images?.jpg?.image_url,
-      rating: item.rating || item.score || 0,
-      year: item.year || '',
-      synopsis: item.synopsis || item.overview || ''
-    }));
-    currentResults = results;
-    mainGrid.innerHTML = results.map(item => movieCard(item, 'movies')).join('');
-    attachCardHandlers(mainGrid);
-    if (results.length) setHero(results[0], 'movies');
-    sectionTitle.textContent = 'Movies (from Anime API)';
-  } catch (e) {
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load</div><p>${e.message}</p></div>`;
-  }
+  // Use mobinime movies as the dedicated movies endpoint
+  await loadMobinimeMovies();
+  sectionTitle.textContent = 'Movies';
 }
 
 async function loadDramas() {
+  // Use animelovers list as drama placeholder
   mainGrid.innerHTML = skeletonCards(12);
   try {
-    const data = await fetchAPI('/anime/list');
+    const data = await fetchAPI('/anime/animelovers/list');
     const results = (data.results || data || []).map(item => ({
       id: item.id || item.mal_id || item.animeId,
       title: item.title || item.name || 'Unknown',
@@ -160,15 +279,21 @@ async function loadDramas() {
     mainGrid.innerHTML = results.map(item => movieCard(item, 'dramas')).join('');
     attachCardHandlers(mainGrid);
     if (results.length) setHero(results[0], 'dramas');
-    sectionTitle.textContent = 'Korean Dramas (from Anime API)';
+    sectionTitle.textContent = 'Korean Dramas';
   } catch (e) {
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load</div><p>${e.message}</p></div>`;
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load dramas</div><p>${e.message}</p></div>`;
   }
 }
 
 function loadTabContent() {
-  if (currentTab === 'schedule') loadSchedule();
-  else if (currentTab === 'anime') loadAnimeList();
+  if (currentTab === 'trending') loadTrending();
+  else if (currentTab === 'airing') loadAiring();
+  else if (currentTab === 'seasonal') loadSeasonal();
+  else if (currentTab === 'top') loadTop();
+  else if (currentTab === 'animelovers') loadAnimelovers();
+  else if (currentTab === 'mobinime') loadMobinime();
+  else if (currentTab === 'mobinime_movies') loadMobinimeMovies();
+  else if (currentTab === 'otakudesu') loadOtakudesu();
   else if (currentTab === 'movies') loadMovies();
   else if (currentTab === 'dramas') loadDramas();
 }
@@ -186,8 +311,14 @@ function setHero(item, type) {
   $('heroTitle').textContent = item.title || '44thStream';
   $('heroDesc').textContent = item.synopsis || 'No synopsis available.';
   const eyebrows = {
-    schedule: 'Airing Now',
-    anime: 'Trending Anime',
+    trending: 'Trending Now',
+    airing: 'Currently Airing',
+    seasonal: 'Seasonal Anime',
+    top: 'Top Ranked',
+    animelovers: 'Animelovers',
+    mobinime: 'Mobinime',
+    mobinime_movies: 'Mobinime Movies',
+    otakudesu: 'Otakudesu',
     movies: 'Now Showing',
     dramas: 'Korean Drama'
   };
@@ -267,7 +398,7 @@ function renderDetail(data, episodes) {
 }
 
 // ============================================================
-// PLAY FUNCTIONS
+// PLAY EPISODE
 // ============================================================
 async function playEpisode(index) {
   const container = $('videoPlayerContainer');
@@ -286,7 +417,6 @@ async function playEpisode(index) {
     const videoUrl = data.url || data.stream || data.source || data.video || data.link;
 
     if (videoUrl) {
-      const isHls = videoUrl.includes('.m3u8');
       container.innerHTML = `
         <div class="video-player">
           <video controls autoplay style="width:100%;max-height:500px;">
@@ -397,7 +527,24 @@ $('modalBg').addEventListener('click', (e) => {
 });
 
 // ============================================================
+// GENRE CHIPS
+// ============================================================
+async function loadGenres() {
+  try {
+    const data = await fetchAPI('/anime/animelovers/genres');
+    const genres = (data.results || data || []).slice(0, 8);
+    const chips = document.querySelector('.chips');
+    if (!chips) return;
+    chips.innerHTML = `<span class="chip active" data-id="">All</span>` +
+      genres.map(g => `<span class="chip" data-id="${g.id || g.mal_id}">${g.name}</span>`).join('');
+  } catch (e) {
+    console.log('Genres not loaded:', e);
+  }
+}
+
+// ============================================================
 // BOOT
 // ============================================================
 mainGrid.innerHTML = skeletonCards(12);
-loadSchedule();
+loadTrending();
+loadGenres();
