@@ -253,7 +253,6 @@ async function openDetail(id, type) {
         genres: attrs.genres || [],
         episodes: attrs.episodeCount || 0
       };
-      // Kitsu doesn't provide episode list directly — we'll use placeholder
       episodes = [];
     } else if (type === 'dramas') {
       const info = await fetchTVMaze(`/shows/${id}`);
@@ -344,8 +343,7 @@ async function playEpisode(index) {
     <div class="empty-state">
       <div class="display">Streaming Source Needed</div>
       <p>Episode ${ep.number || index + 1} — ${ep.title || ''}</p>
-      <p style="font-size:12px;margin-top:10px;">Kitsu and TVMaze provide metadata only.</p>
-      <p style="font-size:12px;">You'll need to integrate GogoAnime, Animepahe, or another video provider for actual streams.</p>
+      <p style="font-size:12px;margin-top:10px;">You'll need to integrate a video provider for actual streams.</p>
     </div>
   `;
 }
