@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>44thStream — Movies</title>
+  <title>44thStream</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -88,13 +88,13 @@
       flex-wrap: wrap;
     }
     .tabs button {
-      padding: 8px 18px;
+      padding: 8px 14px;
       background: transparent;
       color: var(--cream-dim);
       border: 1px solid transparent;
       border-radius: 999px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       transition: all 0.2s;
     }
@@ -191,19 +191,6 @@
     }
     .section-title { font-size: 24px; }
     .section-title .num { color: var(--crimson); margin-right: 8px; }
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-    .chip {
-      border: 1px solid rgba(255,255,255,0.1);
-      background: var(--card);
-      color: var(--cream-dim);
-      font-size: 12px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .chip:hover { border-color: var(--gold); color: var(--gold); }
-    .chip.active { background: var(--grad); color: var(--void); border-color: transparent; font-weight: 700; }
 
     .grid {
       display: grid;
@@ -383,7 +370,7 @@
     @media (max-width: 640px) {
       header { padding: 14px 5vw; }
       .search-wrap { order: 3; max-width: 100%; flex-basis: 100%; }
-      .tabs button { font-size: 11px; padding: 6px 12px; }
+      .tabs button { font-size: 10px; padding: 5px 8px; }
       .detail-poster { flex: 0 0 100%; max-width: 220px; margin: 0 auto; }
       .hero { height: 50vh; min-height: 320px; }
       .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
@@ -395,7 +382,7 @@
   <header>
     <div class="logo display">44th<em>Stream</em></div>
     <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Search movies..." autocomplete="off" />
+      <input type="text" id="searchInput" placeholder="Search movies, TV, anime..." autocomplete="off" />
     </div>
     <div class="header-actions">
       <span class="status-badge" id="statusBadge">● Live</span>
@@ -405,10 +392,13 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab="trending">🔥 Trending</button>
-    <button class="tab-btn" data-tab="latest">🆕 Latest</button>
-    <button class="tab-btn" data-tab="nkiri">🇳🇬 Nkiri</button>
+    <button class="tab-btn" data-tab="movies">🎬 Movies</button>
     <button class="tab-btn" data-tab="tv">📺 TV Shows</button>
-    <button class="tab-btn" data-tab="dramas">🇰🇷 Dramas</button>
+    <button class="tab-btn" data-tab="anime">🎌 Anime</button>
+    <button class="tab-btn" data-tab="schedule">📅 Schedule</button>
+    <button class="tab-btn" data-tab="popular_airing">⭐ Popular Airing</button>
+    <button class="tab-btn" data-tab="upcoming">🔮 Upcoming</button>
+    <button class="tab-btn" data-tab="live">📡 Live TV</button>
   </nav>
 
   <section class="hero" id="hero">
@@ -417,7 +407,7 @@
     <div class="hero-content">
       <div class="eyebrow" id="heroEyebrow">Now Showing</div>
       <h1 class="hero-title display" id="heroTitle">44thStream</h1>
-      <p class="hero-desc" id="heroDesc">Movies, TV shows, and Korean dramas.</p>
+      <p class="hero-desc" id="heroDesc">Movies, TV shows, anime, and live TV.</p>
       <div class="hero-meta" id="heroMeta"></div>
       <button class="btn-primary" id="heroCta">View Details</button>
     </div>
@@ -425,8 +415,7 @@
 
   <main>
     <div class="section-head">
-      <h2 class="section-title display"><span class="num">01</span><span id="sectionTitle">Trending Movies</span></h2>
-      <div class="chips" id="genreChips"></div>
+      <h2 class="section-title display"><span class="num">01</span><span id="sectionTitle">Trending Now</span></h2>
     </div>
     <div class="grid" id="mainGrid"></div>
 
@@ -438,7 +427,7 @@
 
   <footer>
     <div class="display">44thStream</div>
-    <div>Powered by ZST Labs · Built with ❤️</div>
+    <div>Powered by Runflix · Built with ❤️</div>
   </footer>
 
   <div id="detailPage">
