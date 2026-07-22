@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>44thStream</title>
+  <title>44thStream — Movies</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -88,13 +88,13 @@
       flex-wrap: wrap;
     }
     .tabs button {
-      padding: 8px 14px;
+      padding: 8px 18px;
       background: transparent;
       color: var(--cream-dim);
       border: 1px solid transparent;
       border-radius: 999px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 500;
       transition: all 0.2s;
     }
@@ -383,7 +383,7 @@
     @media (max-width: 640px) {
       header { padding: 14px 5vw; }
       .search-wrap { order: 3; max-width: 100%; flex-basis: 100%; }
-      .tabs button { font-size: 10px; padding: 5px 8px; }
+      .tabs button { font-size: 11px; padding: 6px 12px; }
       .detail-poster { flex: 0 0 100%; max-width: 220px; margin: 0 auto; }
       .hero { height: 50vh; min-height: 320px; }
       .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
@@ -395,7 +395,7 @@
   <header>
     <div class="logo display">44th<em>Stream</em></div>
     <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Search anime..." autocomplete="off" />
+      <input type="text" id="searchInput" placeholder="Search movies..." autocomplete="off" />
     </div>
     <div class="header-actions">
       <span class="status-badge" id="statusBadge">● Live</span>
@@ -405,14 +405,9 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab="trending">🔥 Trending</button>
-    <button class="tab-btn" data-tab="airing">📺 Airing</button>
-    <button class="tab-btn" data-tab="seasonal">🌸 Seasonal</button>
-    <button class="tab-btn" data-tab="top">🏆 Top</button>
-    <button class="tab-btn" data-tab="animelovers">📚 Animelovers</button>
-    <button class="tab-btn" data-tab="mobinime">📖 Mobinime</button>
-    <button class="tab-btn" data-tab="mobinime_movies">🎬 Mobinime Movies</button>
-    <button class="tab-btn" data-tab="otakudesu">📺 Otakudesu</button>
-    <button class="tab-btn" data-tab="movies">🎬 Movies</button>
+    <button class="tab-btn" data-tab="latest">🆕 Latest</button>
+    <button class="tab-btn" data-tab="nkiri">🇳🇬 Nkiri</button>
+    <button class="tab-btn" data-tab="tv">📺 TV Shows</button>
     <button class="tab-btn" data-tab="dramas">🇰🇷 Dramas</button>
   </nav>
 
@@ -422,7 +417,7 @@
     <div class="hero-content">
       <div class="eyebrow" id="heroEyebrow">Now Showing</div>
       <h1 class="hero-title display" id="heroTitle">44thStream</h1>
-      <p class="hero-desc" id="heroDesc">Your gateway to anime, movies, and Korean dramas.</p>
+      <p class="hero-desc" id="heroDesc">Movies, TV shows, and Korean dramas.</p>
       <div class="hero-meta" id="heroMeta"></div>
       <button class="btn-primary" id="heroCta">View Details</button>
     </div>
@@ -430,7 +425,7 @@
 
   <main>
     <div class="section-head">
-      <h2 class="section-title display"><span class="num">01</span><span id="sectionTitle">Trending Anime</span></h2>
+      <h2 class="section-title display"><span class="num">01</span><span id="sectionTitle">Trending Movies</span></h2>
       <div class="chips" id="genreChips"></div>
     </div>
     <div class="grid" id="mainGrid"></div>
@@ -443,7 +438,7 @@
 
   <footer>
     <div class="display">44thStream</div>
-    <div>Powered by DavidCyril API · Built with ❤️</div>
+    <div>Powered by ZST Labs · Built with ❤️</div>
   </footer>
 
   <div id="detailPage">
