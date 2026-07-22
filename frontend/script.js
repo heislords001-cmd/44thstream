@@ -122,11 +122,12 @@ async function loadMovies() {
 }
 
 // ============================================================
-// ANIME — Jikan API (Works, No Key)
+// ANIME — Jikan API with Fallback
 // ============================================================
 async function loadAnime() {
   mainGrid.innerHTML = skeletonCards(12);
   try {
+    // Try Jikan first
     const data = await fetchJikan('/top/anime?limit=50&filter=airing');
     const results = data.data.map(item => ({
       id: item.mal_id,
@@ -145,13 +146,45 @@ async function loadAnime() {
     if (results.length) setHero(results[0], 'anime');
     sectionTitle.textContent = 'Trending Anime';
   } catch (e) {
-    console.error('Anime error:', e);
-    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load anime</div><p>${e.message}</p></div>`;
+    console.warn('Jikan failed, using fallback:', e);
+    // Fallback: Static list of popular anime (using known IDs from MyAnimeList)
+    const fallbackIds = [21, 5114, 1735, 11061, 9253, 30276, 101921, 105267, 106807, 37546, 106086, 115203, 113899, 102651, 96043, 103384, 104394, 106595, 109431, 107272, 104938, 108058, 105820, 113893, 98574, 111897, 104016, 107286, 103738, 109447, 98983, 112145, 105483, 102579, 108119, 102646, 107753, 103347, 101128, 96053, 102376, 100834, 103120, 106597, 97381, 103356, 108451, 110244, 103429, 103899];
+    
+    let results = [];
+    for (const id of fallbackIds) {
+      try {
+        const data = await fetchJikan(`/anime/${id}`);
+        const item = data.data;
+        results.push({
+          id: item.mal_id,
+          title: item.title,
+          poster: item.images?.jpg?.image_url || null,
+          rating: item.score || 0,
+          year: item.year || '',
+          overview: item.synopsis || '',
+          backdrop: item.images?.jpg?.large_image_url || null,
+          genres: item.genres || [],
+          episodes: item.episodes || 0
+        });
+      } catch (err) {
+        // Skip failed IDs
+      }
+    }
+    
+    if (results.length > 0) {
+      currentResults = results;
+      mainGrid.innerHTML = results.map(item => movieCard(item, 'anime')).join('');
+      attachCardHandlers(mainGrid);
+      if (results.length) setHero(results[0], 'anime');
+      sectionTitle.textContent = 'Trending Anime (Fallback)';
+    } else {
+      mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load anime</div><p>Jikan API is down. Try again later.</p></div>`;
+    }
   }
 }
 
 // ============================================================
-// KOREAN DRAMAS — TVMaze (No Key)
+// KOREAN DRAMAS — TVMaze
 // ============================================================
 async function loadDramas() {
   mainGrid.innerHTML = skeletonCards(12);
@@ -340,8 +373,6 @@ async function playEpisode(index) {
   container.innerHTML = '<div class="modal-loading">Loading episode...</div>';
 
   try {
-    // This is a placeholder — Jikan/TVMaze don't provide streaming links.
-    // You'll need to integrate GogoAnime, Animepahe, or another video source.
     container.innerHTML = `
       <div class="empty-state">
         <div class="display">Streaming Source Needed</div>
@@ -411,15 +442,23 @@ $('searchInput').addEventListener('input', (e) => {
           overview: item.overview || ''
         }));
       } else if (currentTab === 'anime') {
-        const data = await fetchJikan(`/anime?q=${encodeURIComponent(q)}&limit=50`);
-        results = data.data.map(item => ({
-          id: item.mal_id,
-          title: item.title,
-          poster: item.images?.jpg?.image_url || null,
-          rating: item.score || 0,
-          year: item.year || '',
-          overview: item.synopsis || ''
-        }));
+        try {
+          const data = await fetchJikan(`/anime?q=${encodeURIComponent(q)}&limit=50`);
+          results = data.data.map(item => ({
+            id: item.mal_id,
+            title: item.title,
+            poster: item.images?.jpg?.image_url || null,
+            rating: item.score || 0,
+            year: item.year || '',
+            overview: item.synopsis || ''
+          }));
+        } catch (e) {
+          // If Jikan fails, use fallback with a simple filter
+          const fallback = currentResults.filter(item => 
+            item.title.toLowerCase().includes(q.toLowerCase())
+          );
+          results = fallback.slice(0, 20);
+        }
       } else if (currentTab === 'dramas') {
         const data = await fetchTVMaze(`/search/shows?q=${encodeURIComponent(q)}`);
         results = data.map(item => ({
