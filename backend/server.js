@@ -190,4 +190,8 @@ app.get('/api/dramas/latest', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`)); Add backend server.js
+// ============================
+// START SERVER
+// ============================
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
