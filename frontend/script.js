@@ -1,10 +1,10 @@
 // ============================================================
-// CONFIG — Working APIs
+// CONFIG
 // ============================================================
 const TMDB_ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlMmY1N2Q3MDQ1NDI0NDc2NDNjNmYxZGEwOTJmZjkxYyIsIm5iZiI6MTc4MzI3MjMzNC41NzksInN1YiI6IjZhNGE5MzhlZmJhNTZhOWRhZWYyZjg3OSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.cR-Ks9gEwGxu-UPb5pmCPMNNrRKwe8AcI6KAMwfrSi0';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
-const JIKAN_API = 'https://api.jikan.moe/v4';
-const TVMAZE_API = 'https://api.tvmaze.com';
+const CONSUMET_ANIME = 'https://api.consumet.org/anime/animepahe';
+const CONSUMET_DRAMA = 'https://api.consumet.org/movies/dramacool';
 
 // ============================================================
 // STATE
@@ -13,7 +13,7 @@ let currentTab = 'movies';
 let currentResults = [];
 let currentDetailData = null;
 let currentEpisodes = [];
-let currentVideoSource = null;
+let currentPage = 1;
 
 // ============================================================
 // DOM REFS
@@ -41,10 +41,10 @@ function ratingColor(score) {
 
 function movieCard(item, type) {
   const title = item.title || item.name || 'Unknown';
-  const poster = item.poster || item.image || item.poster_path || null;
+  const poster = item.poster || item.image || item.poster_path || item.cover || null;
   const rating = item.rating || item.vote_average || item.score || 0;
   const year = item.year || item.release_date || item.releaseDate || '';
-  const id = item.id || item.mal_id;
+  const id = item.id || item.animeId || item.dramaId || item.mal_id;
 
   return `
     <div class="card" data-id="${id}" data-type="${type || currentTab}">
@@ -74,34 +74,31 @@ function attachCardHandlers(container) {
 async function fetchTMDB(path) {
   const url = `${TMDB_BASE}${path}`;
   const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${TMDB_ACCESS_TOKEN}`
-    }
+    headers: { 'Authorization': `Bearer ${TMDB_ACCESS_TOKEN}` }
   });
   if (!res.ok) throw new Error(`TMDB HTTP ${res.status}`);
   return res.json();
 }
 
-async function fetchJikan(path) {
-  const res = await fetch(`${JIKAN_API}${path}`);
-  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
-  return res.json();
-}
-
-async function fetchTVMaze(path) {
-  const res = await fetch(`${TVMAZE_API}${path}`);
-  if (!res.ok) throw new Error(`TVMaze HTTP ${res.status}`);
+async function fetchConsumet(path, base) {
+  const url = `${base}${path}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Consumet HTTP ${res.status}`);
   return res.json();
 }
 
 // ============================================================
-// MOVIES — TMDB
+// MOVIES — TMDB (Multiple Pages)
 // ============================================================
 async function loadMovies() {
   mainGrid.innerHTML = skeletonCards(12);
   try {
-    const data = await fetchTMDB('/discover/movie?sort_by=popularity.desc&page=1');
-    const results = data.results.map(item => ({
+    let allMovies = [];
+    for (let i = 1; i <= 3; i++) {
+      const data = await fetchTMDB(`/discover/movie?sort_by=popularity.desc&page=${i}`);
+      allMovies = allMovies.concat(data.results);
+    }
+    const results = allMovies.map(item => ({
       id: item.id,
       title: item.title,
       poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
@@ -122,23 +119,21 @@ async function loadMovies() {
 }
 
 // ============================================================
-// ANIME — Jikan API with Fallback
+// ANIME — Consumet (Animepahe)
 // ============================================================
 async function loadAnime() {
   mainGrid.innerHTML = skeletonCards(12);
   try {
-    // Try Jikan first
-    const data = await fetchJikan('/top/anime?limit=50&filter=airing');
-    const results = data.data.map(item => ({
-      id: item.mal_id,
-      title: item.title,
-      poster: item.images?.jpg?.image_url || null,
-      rating: item.score || 0,
-      year: item.year || '',
-      overview: item.synopsis || '',
-      backdrop: item.images?.jpg?.large_image_url || null,
-      genres: item.genres || [],
-      episodes: item.episodes || 0
+    const data = await fetchConsumet('/top-airing', CONSUMET_ANIME);
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.animeId,
+      title: item.title || item.name,
+      poster: item.image || item.poster || item.cover,
+      rating: item.rating || item.score || 0,
+      year: item.releaseDate || item.year || '',
+      overview: item.synopsis || item.overview || '',
+      backdrop: item.cover || item.image || null,
+      genres: item.genres || []
     }));
     currentResults = results;
     mainGrid.innerHTML = results.map(item => movieCard(item, 'anime')).join('');
@@ -146,59 +141,27 @@ async function loadAnime() {
     if (results.length) setHero(results[0], 'anime');
     sectionTitle.textContent = 'Trending Anime';
   } catch (e) {
-    console.warn('Jikan failed, using fallback:', e);
-    // Fallback: Static list of popular anime (using known IDs from MyAnimeList)
-    const fallbackIds = [21, 5114, 1735, 11061, 9253, 30276, 101921, 105267, 106807, 37546, 106086, 115203, 113899, 102651, 96043, 103384, 104394, 106595, 109431, 107272, 104938, 108058, 105820, 113893, 98574, 111897, 104016, 107286, 103738, 109447, 98983, 112145, 105483, 102579, 108119, 102646, 107753, 103347, 101128, 96053, 102376, 100834, 103120, 106597, 97381, 103356, 108451, 110244, 103429, 103899];
-    
-    let results = [];
-    for (const id of fallbackIds) {
-      try {
-        const data = await fetchJikan(`/anime/${id}`);
-        const item = data.data;
-        results.push({
-          id: item.mal_id,
-          title: item.title,
-          poster: item.images?.jpg?.image_url || null,
-          rating: item.score || 0,
-          year: item.year || '',
-          overview: item.synopsis || '',
-          backdrop: item.images?.jpg?.large_image_url || null,
-          genres: item.genres || [],
-          episodes: item.episodes || 0
-        });
-      } catch (err) {
-        // Skip failed IDs
-      }
-    }
-    
-    if (results.length > 0) {
-      currentResults = results;
-      mainGrid.innerHTML = results.map(item => movieCard(item, 'anime')).join('');
-      attachCardHandlers(mainGrid);
-      if (results.length) setHero(results[0], 'anime');
-      sectionTitle.textContent = 'Trending Anime (Fallback)';
-    } else {
-      mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load anime</div><p>Jikan API is down. Try again later.</p></div>`;
-    }
+    console.error('Anime error:', e);
+    mainGrid.innerHTML = `<div class="empty-state"><div class="display">Failed to load anime</div><p>${e.message}</p></div>`;
   }
 }
 
 // ============================================================
-// KOREAN DRAMAS — TVMaze
+// KOREAN DRAMAS — Consumet (Dramacool)
 // ============================================================
 async function loadDramas() {
   mainGrid.innerHTML = skeletonCards(12);
   try {
-    const data = await fetchTVMaze('/search/shows?q=korean+drama');
-    const results = data.map(item => ({
-      id: item.show.id,
-      title: item.show.name,
-      poster: item.show.image?.medium || null,
-      rating: item.show.rating?.average || 0,
-      year: item.show.premiered?.slice(0,4) || '',
-      overview: item.show.summary?.replace(/<[^>]+>/g, '') || '',
-      backdrop: item.show.image?.original || null,
-      genres: item.show.genres || []
+    const data = await fetchConsumet('/recently-updated', CONSUMET_DRAMA);
+    const results = (data.results || data || []).map(item => ({
+      id: item.id || item.dramaId,
+      title: item.title || item.name,
+      poster: item.image || item.poster || item.cover,
+      rating: item.rating || 0,
+      year: item.releaseDate || item.year || '',
+      overview: item.synopsis || item.overview || '',
+      backdrop: item.cover || item.image || null,
+      genres: item.genres || []
     }));
     currentResults = results;
     mainGrid.innerHTML = results.map(item => movieCard(item, 'dramas')).join('');
@@ -232,19 +195,13 @@ function setHero(item, type) {
   }
   $('heroTitle').textContent = item.title || '44thStream';
   $('heroDesc').textContent = item.overview || 'No synopsis available.';
-  const eyebrows = {
-    movies: 'Now Showing',
-    anime: 'Trending Anime',
-    dramas: 'Korean Drama'
-  };
+  const eyebrows = { movies: 'Now Showing', anime: 'Trending Anime', dramas: 'Korean Drama' };
   $('heroEyebrow').textContent = eyebrows[type] || 'Now Showing';
   $('heroMeta').innerHTML = `
     <div class="pill">★ ${Number(item.rating || 0).toFixed(1)}</div>
     <div class="pill">${String(item.year || '').slice(0, 4) || '—'}</div>
   `;
-  $('heroCta').onclick = () => {
-    if (item.id) openDetail(item.id, type);
-  };
+  $('heroCta').onclick = () => { if (item.id) openDetail(item.id, type); };
 }
 
 // ============================================================
@@ -274,31 +231,29 @@ async function openDetail(id, type) {
       };
       episodes = [];
     } else if (type === 'anime') {
-      const info = await fetchJikan(`/anime/${id}/full`);
+      const info = await fetchConsumet(`/info/${id}`, CONSUMET_ANIME);
       data = {
-        id: info.data.mal_id,
-        title: info.data.title,
-        poster: info.data.images?.jpg?.image_url || null,
-        rating: info.data.score || 0,
-        year: info.data.year || '',
-        overview: info.data.synopsis || '',
-        genres: info.data.genres || [],
-        episodes: info.data.episodes || 0,
-        trailer: info.data.trailer?.url || null
-      };
-      const epData = await fetchJikan(`/anime/${id}/episodes?limit=50`);
-      episodes = epData.data || [];
-    } else if (type === 'dramas') {
-      const info = await fetchTVMaze(`/shows/${id}`);
-      data = {
-        id: info.id,
-        title: info.name,
-        poster: info.image?.medium || null,
-        rating: info.rating?.average || 0,
-        year: info.premiered?.slice(0,4) || '',
-        overview: info.summary?.replace(/<[^>]+>/g, '') || '',
+        id: info.id || id,
+        title: info.title || info.name,
+        poster: info.image || info.poster || info.cover,
+        rating: info.rating || info.score || 0,
+        year: info.releaseDate || info.year || '',
+        overview: info.synopsis || info.overview || '',
         genres: info.genres || [],
-        episodes: info._embedded?.episodes || []
+        episodes: info.episodes || 0
+      };
+      episodes = info.episodes || [];
+    } else if (type === 'dramas') {
+      const info = await fetchConsumet(`/info?id=${id}`, CONSUMET_DRAMA);
+      data = {
+        id: info.id || id,
+        title: info.title || info.name,
+        poster: info.image || info.poster || info.cover,
+        rating: info.rating || 0,
+        year: info.releaseDate || info.year || '',
+        overview: info.synopsis || info.overview || '',
+        genres: info.genres || [],
+        episodes: info.episodes || []
       };
       episodes = data.episodes || [];
     }
@@ -373,17 +328,71 @@ async function playEpisode(index) {
   container.innerHTML = '<div class="modal-loading">Loading episode...</div>';
 
   try {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="display">Streaming Source Needed</div>
-        <p>Episode ${ep.number || index + 1} — ${ep.title || ''}</p>
-        <p style="font-size:12px;margin-top:10px;">Jikan/TVMaze provide metadata only.</p>
-        <p style="font-size:12px;">You'll need to integrate GogoAnime, Animepahe, or another video provider.</p>
-      </div>
-    `;
+    let watchData;
+    if (currentTab === 'anime') {
+      const epId = ep.id || ep.episodeId;
+      watchData = await fetchConsumet(`/watch/${epId}`, CONSUMET_ANIME);
+    } else if (currentTab === 'dramas') {
+      const epId = ep.episodeId || ep.id;
+      const mediaId = currentDetailData.id;
+      watchData = await fetchConsumet(`/watch?episodeId=${epId}&mediaId=${mediaId}&server=asianload`, CONSUMET_DRAMA);
+    }
+    
+    const sources = watchData.sources || [];
+    const source = sources.find(s => s.quality === '1080p') || sources[0];
+    if (source && source.url) {
+      renderVideoPlayer(source.url, ep.title || `Episode ${ep.number || index + 1}`);
+    } else {
+      container.innerHTML = '<div class="empty-state">No video source available.</div>';
+    }
   } catch (e) {
+    console.error('Episode load error:', e);
     container.innerHTML = `<div class="empty-state">Failed to load episode: ${e.message}</div>`;
   }
+}
+
+function renderVideoPlayer(url, title) {
+  const container = $('videoPlayerContainer');
+  const isHls = url.includes('.m3u8');
+  const isMp4 = url.includes('.mp4');
+  const playerId = 'videoPlayer_' + Date.now();
+
+  let html = `
+    <div class="video-player">
+      <video id="${playerId}" controls style="width:100%;max-height:500px;" playsinline></video>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">
+      ${isMp4 ? `<button class="btn-primary" onclick="downloadVideo('${url}', '${title}')">⬇️ Download</button>` : ''}
+      ${!isMp4 ? `<button class="btn-primary" style="opacity:0.6;cursor:not-allowed;">⬇️ Download (HLS stream)</button>` : ''}
+    </div>
+  `;
+  container.innerHTML = html;
+
+  const video = document.getElementById(playerId);
+  if (isHls) {
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+    } else {
+      container.innerHTML = '<div class="empty-state">Your browser does not support HLS streaming.</div>';
+    }
+  } else {
+    video.src = url;
+    video.play();
+  }
+}
+
+function downloadVideo(url, title) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title || 'video'}.mp4`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function openTrailer(key) {
@@ -391,7 +400,7 @@ function openTrailer(key) {
 }
 
 // ============================================================
-// MODAL (for trailer)
+// MODAL
 // ============================================================
 function openModal(url, title) {
   $('modalBg').classList.add('open');
@@ -442,32 +451,24 @@ $('searchInput').addEventListener('input', (e) => {
           overview: item.overview || ''
         }));
       } else if (currentTab === 'anime') {
-        try {
-          const data = await fetchJikan(`/anime?q=${encodeURIComponent(q)}&limit=50`);
-          results = data.data.map(item => ({
-            id: item.mal_id,
-            title: item.title,
-            poster: item.images?.jpg?.image_url || null,
-            rating: item.score || 0,
-            year: item.year || '',
-            overview: item.synopsis || ''
-          }));
-        } catch (e) {
-          // If Jikan fails, use fallback with a simple filter
-          const fallback = currentResults.filter(item => 
-            item.title.toLowerCase().includes(q.toLowerCase())
-          );
-          results = fallback.slice(0, 20);
-        }
+        const data = await fetchConsumet(`?query=${encodeURIComponent(q)}`, CONSUMET_ANIME);
+        results = (data.results || data || []).map(item => ({
+          id: item.id || item.animeId,
+          title: item.title || item.name,
+          poster: item.image || item.poster || item.cover,
+          rating: item.rating || item.score || 0,
+          year: item.releaseDate || item.year || '',
+          overview: item.synopsis || item.overview || ''
+        }));
       } else if (currentTab === 'dramas') {
-        const data = await fetchTVMaze(`/search/shows?q=${encodeURIComponent(q)}`);
-        results = data.map(item => ({
-          id: item.show.id,
-          title: item.show.name,
-          poster: item.show.image?.medium || null,
-          rating: item.show.rating?.average || 0,
-          year: item.show.premiered?.slice(0,4) || '',
-          overview: item.show.summary?.replace(/<[^>]+>/g, '') || ''
+        const data = await fetchConsumet(`/${encodeURIComponent(q)}`, CONSUMET_DRAMA);
+        results = (data.results || data || []).map(item => ({
+          id: item.id || item.dramaId,
+          title: item.title || item.name,
+          poster: item.image || item.poster || item.cover,
+          rating: item.rating || 0,
+          year: item.releaseDate || item.year || '',
+          overview: item.synopsis || item.overview || ''
         }));
       }
       searchGrid.innerHTML = results.length
