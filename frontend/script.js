@@ -1,5 +1,5 @@
-// Change this to your backend URL when deployed
-const API_URL = 'http://localhost:5000/api';
+// Change this to your backend URL
+const API_URL = 'https://four4thstream.onrender.com/api';
 let currentTab = 'movies';
 
 document.addEventListener('DOMContentLoaded', () => {
